@@ -11,20 +11,33 @@ export default function App() {
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [fileHistory, setFileHistory] = useState([]);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState("chats");
+  const [currentChatId, setCurrentChatId] = useState(null);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  useEffect(() => { fetchHistory(); }, []);
+  useEffect(() => {
+    fetchFileHistory();
+    fetchChatHistory();
+  }, []);
 
-  const fetchHistory = async () => {
+  const fetchFileHistory = async () => {
     try {
       const res = await axios.get(`${API}/history`);
-      setHistory(res.data.history);
+      setFileHistory(res.data.history);
+    } catch {}
+  };
+
+  const fetchChatHistory = async () => {
+    try {
+      const res = await axios.get(`${API}/chats`);
+      setChatHistory(res.data.chats);
     } catch {}
   };
 
@@ -38,7 +51,7 @@ export default function App() {
       setUploadedFiles(res.data.uploaded_files);
       setMessages((prev) => [...prev, { type: "system", text: `✅ ${res.data.message}` }]);
       setFiles([]);
-      fetchHistory();
+      fetchFileHistory();
     } catch {
       setMessages((prev) => [...prev, { type: "system", text: "❌ Upload failed." }]);
     }
@@ -59,20 +72,54 @@ export default function App() {
       const res = await axios.post(`${API}/load/${encodeURIComponent(filename)}`);
       setUploadedFiles(res.data.uploaded_files);
       setMessages((prev) => [...prev, { type: "system", text: `✅ ${filename} loaded!` }]);
-      setShowHistory(false);
+      setShowSidebar(false);
     } catch {
       setMessages((prev) => [...prev, { type: "system", text: "❌ Load failed." }]);
     }
   };
 
+  const handleLoadChat = async (chat) => {
+    const msgs = chat.messages.map((m) => ({
+      type: m.role === "user" ? "user" : "bot",
+      text: m.text,
+      sources: m.sources || null,
+    }));
+    setMessages(msgs);
+    setCurrentChatId(chat.id);
+    setShowSidebar(false);
+  };
+
+  const handleNewChat = () => {
+    setMessages([]);
+    setCurrentChatId(null);
+    setUploadedFiles([]);
+    axios.delete(`${API}/reset`);
+  };
+
+  const handleDeleteChat = async (chatId) => {
+    await axios.delete(`${API}/chats/${chatId}`);
+    fetchChatHistory();
+    if (currentChatId === chatId) {
+      setMessages([]);
+      setCurrentChatId(null);
+    }
+  };
+
+  const handleClearAllChats = async () => {
+    await axios.delete(`${API}/chats`);
+    setChatHistory([]);
+    setMessages([]);
+    setCurrentChatId(null);
+  };
+
   const handleDeleteHistory = async (filename) => {
     await axios.delete(`${API}/history/${encodeURIComponent(filename)}`);
-    fetchHistory();
+    fetchFileHistory();
   };
 
   const handleClearAllHistory = async () => {
     await axios.delete(`${API}/history`);
-    setHistory([]);
+    setFileHistory([]);
   };
 
   const handleReset = async () => {
@@ -80,6 +127,7 @@ export default function App() {
     setUploadedFiles([]);
     setMessages([]);
     setFiles([]);
+    setCurrentChatId(null);
   };
 
   const handleAsk = async () => {
@@ -88,8 +136,17 @@ export default function App() {
     setQuestion("");
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/ask`, { query: question });
-      setMessages((prev) => [...prev, { type: "bot", text: res.data.answer, sources: res.data.sources }]);
+      const res = await axios.post(`${API}/ask`, {
+        query: question,
+        chat_id: currentChatId,
+      });
+      setMessages((prev) => [...prev, {
+        type: "bot",
+        text: res.data.answer,
+        sources: res.data.sources,
+      }]);
+      setCurrentChatId(res.data.chat_id);
+      fetchChatHistory();
     } catch {
       setMessages((prev) => [...prev, { type: "bot", text: "❌ Kuch error aaya." }]);
     }
@@ -101,50 +158,108 @@ export default function App() {
   return (
     <div className={`min-h-screen transition-all duration-300 ${d ? "bg-gray-950" : "bg-gradient-to-br from-slate-100 via-indigo-50 to-purple-100"} flex flex-col items-center px-4 py-8 relative`}>
 
-      {/* History Sidebar — Right Side */}
-      <div className={`fixed top-0 right-0 h-full w-80 z-50 transform transition-transform duration-300 shadow-2xl ${showHistory ? "translate-x-0" : "translate-x-full"} ${d ? "bg-gray-900 border-l border-gray-800" : "bg-white border-l border-gray-200"}`}>
+      {/* Sidebar */}
+      <div className={`fixed top-0 right-0 h-full w-80 z-50 transform transition-transform duration-300 shadow-2xl flex flex-col ${showSidebar ? "translate-x-0" : "translate-x-full"} ${d ? "bg-gray-900 border-l border-gray-800" : "bg-white border-l border-gray-200"}`}>
+
+        {/* Sidebar Header */}
         <div className={`flex items-center justify-between px-5 py-4 border-b ${d ? "border-gray-800" : "border-gray-100"}`}>
-          <h2 className={`font-black text-lg ${d ? "text-white" : "text-gray-800"}`}>📂 File History</h2>
-          <button onClick={() => setShowHistory(false)} className="text-gray-400 hover:text-gray-600 text-xl cursor-pointer">✕</button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSidebarTab("chats")}
+              className={`text-sm font-bold px-3 py-1 rounded-full transition cursor-pointer ${sidebarTab === "chats" ? "bg-indigo-600 text-white" : d ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-700"}`}
+            >
+              💬 Chats
+            </button>
+            <button
+              onClick={() => setSidebarTab("files")}
+              className={`text-sm font-bold px-3 py-1 rounded-full transition cursor-pointer ${sidebarTab === "files" ? "bg-indigo-600 text-white" : d ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-700"}`}
+            >
+              📂 Files
+            </button>
+          </div>
+          <button onClick={() => setShowSidebar(false)} className="text-gray-400 hover:text-gray-600 text-xl cursor-pointer">✕</button>
         </div>
 
-        <div className="overflow-y-auto h-[calc(100%-130px)]">
-          {history.length === 0 ? (
-            <p className={`text-center text-sm py-10 ${d ? "text-gray-500" : "text-gray-400"}`}>Koi history nahi hai abhi...</p>
-          ) : (
-            history.map((item, i) => (
-              <div key={i} className={`flex items-center justify-between px-5 py-3 border-b transition ${d ? "border-gray-800 hover:bg-gray-800" : "border-gray-50 hover:bg-indigo-50"}`}>
-                <div className="flex-1 min-w-0 mr-2">
-                  <p className={`text-sm font-semibold truncate ${d ? "text-gray-200" : "text-gray-700"}`}>📄 {item.filename}</p>
-                  <p className={`text-xs mt-0.5 ${d ? "text-gray-500" : "text-gray-400"}`}>{item.uploaded_at}</p>
-                  <p className={`text-xs ${d ? "text-gray-600" : "text-gray-300"}`}>{item.chunks} chunks</p>
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <button onClick={() => handleLoad(item.filename)} className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold cursor-pointer transition">
-                    Load
-                  </button>
-                  <button onClick={() => handleDeleteHistory(item.filename)} className="text-red-400 hover:bg-red-50 text-sm px-2 py-1.5 rounded-lg cursor-pointer transition">
-                    🗑️
-                  </button>
-                </div>
-              </div>
-            ))
+        {/* Sidebar Content */}
+        <div className="flex-1 overflow-y-auto">
+
+          {/* Chats Tab */}
+          {sidebarTab === "chats" && (
+            <>
+              {chatHistory.length === 0 ? (
+                <p className={`text-center text-sm py-10 ${d ? "text-gray-500" : "text-gray-400"}`}>Koi chat nahi hai abhi...</p>
+              ) : (
+                chatHistory.map((chat) => (
+                  <div
+                    key={chat.id}
+                    className={`flex items-center justify-between px-5 py-3 border-b cursor-pointer transition ${currentChatId === chat.id ? d ? "bg-indigo-900/40" : "bg-indigo-50" : d ? "border-gray-800 hover:bg-gray-800" : "border-gray-50 hover:bg-gray-50"}`}
+                    onClick={() => handleLoadChat(chat)}
+                  >
+                    <div className="flex-1 min-w-0 mr-2">
+                      <p className={`text-sm font-semibold truncate ${d ? "text-gray-200" : "text-gray-700"}`}>
+                        💬 {chat.title}
+                      </p>
+                      <p className={`text-xs mt-0.5 ${d ? "text-gray-500" : "text-gray-400"}`}>{chat.created_at}</p>
+                      <p className={`text-xs ${d ? "text-gray-600" : "text-gray-300"}`}>{chat.messages.length} messages</p>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteChat(chat.id); }}
+                      className="text-red-400 hover:text-red-500 text-sm px-2 py-1 rounded-lg cursor-pointer"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                ))
+              )}
+            </>
+          )}
+
+          {/* Files Tab */}
+          {sidebarTab === "files" && (
+            <>
+              {fileHistory.length === 0 ? (
+                <p className={`text-center text-sm py-10 ${d ? "text-gray-500" : "text-gray-400"}`}>Koi file nahi hai abhi...</p>
+              ) : (
+                fileHistory.map((item, i) => (
+                  <div key={i} className={`flex items-center justify-between px-5 py-3 border-b transition ${d ? "border-gray-800 hover:bg-gray-800" : "border-gray-50 hover:bg-indigo-50"}`}>
+                    <div className="flex-1 min-w-0 mr-2">
+                      <p className={`text-sm font-semibold truncate ${d ? "text-gray-200" : "text-gray-700"}`}>📄 {item.filename}</p>
+                      <p className={`text-xs mt-0.5 ${d ? "text-gray-500" : "text-gray-400"}`}>{item.uploaded_at}</p>
+                      <p className={`text-xs ${d ? "text-gray-600" : "text-gray-300"}`}>{item.chunks} chunks</p>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <button onClick={() => handleLoad(item.filename)} className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold cursor-pointer transition">
+                        Load
+                      </button>
+                      <button onClick={() => handleDeleteHistory(item.filename)} className="text-red-400 hover:text-red-500 text-sm px-2 py-1.5 rounded-lg cursor-pointer">
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </>
           )}
         </div>
 
-        {/* Clear All */}
-        {history.length > 0 && (
-          <div className={`absolute bottom-0 left-0 right-0 p-4 border-t ${d ? "border-gray-800 bg-gray-900" : "border-gray-100 bg-white"}`}>
-            <button onClick={handleClearAllHistory} className="w-full py-2 rounded-xl text-sm font-bold text-red-400 border border-red-200 hover:bg-red-50 transition cursor-pointer">
-              🗑️ Clear All History
+        {/* Sidebar Footer */}
+        <div className={`p-4 border-t ${d ? "border-gray-800 bg-gray-900" : "border-gray-100 bg-white"}`}>
+          {sidebarTab === "chats" && chatHistory.length > 0 && (
+            <button onClick={handleClearAllChats} className="w-full py-2 rounded-xl text-sm font-bold text-red-400 border border-red-200 hover:bg-red-50 transition cursor-pointer">
+              🗑️ Clear All Chats
             </button>
-          </div>
-        )}
+          )}
+          {sidebarTab === "files" && fileHistory.length > 0 && (
+            <button onClick={handleClearAllHistory} className="w-full py-2 rounded-xl text-sm font-bold text-red-400 border border-red-200 hover:bg-red-50 transition cursor-pointer">
+              🗑️ Clear All Files
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Overlay */}
-      {showHistory && (
-        <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" onClick={() => setShowHistory(false)} />
+      {showSidebar && (
+        <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" onClick={() => setShowSidebar(false)} />
       )}
 
       {/* Header */}
@@ -159,13 +274,19 @@ export default function App() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setShowHistory(true)}
-            className={`relative px-4 py-2 rounded-full text-sm font-bold transition cursor-pointer ${d ? "bg-gray-800 text-gray-200 hover:bg-gray-700" : "bg-white text-indigo-600 hover:bg-indigo-50 shadow-md border border-indigo-100"}`}
+            onClick={handleNewChat}
+            className={`px-4 py-2 rounded-full text-sm font-bold transition cursor-pointer shadow-md ${d ? "bg-gray-800 text-green-400 hover:bg-gray-700" : "bg-white text-green-600 hover:bg-green-50 border border-green-100"}`}
           >
-            📂 History
-            {history.length > 0 && (
+            ✏️ New
+          </button>
+          <button
+            onClick={() => setShowSidebar(true)}
+            className={`relative px-4 py-2 rounded-full text-sm font-bold transition cursor-pointer shadow-md ${d ? "bg-gray-800 text-gray-200 hover:bg-gray-700" : "bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-100"}`}
+          >
+            🕘 History
+            {(chatHistory.length > 0 || fileHistory.length > 0) && (
               <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                {history.length}
+                {chatHistory.length}
               </span>
             )}
           </button>
@@ -198,24 +319,18 @@ export default function App() {
               {uploading ? "⏳ Uploading..." : "🚀 Upload"}
             </button>
             {uploadedFiles.length > 0 && (
-              <button onClick={handleReset} className="text-red-400 hover:text-red-500 text-xs font-bold cursor-pointer transition">
-                Clear All
+              <button onClick={handleReset} className="text-red-400 hover:text-red-500 text-xs font-bold cursor-pointer">
+                Clear
               </button>
             )}
           </div>
 
-          {/* Uploaded Files with ✕ */}
           {uploadedFiles.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               {uploadedFiles.map((f, i) => (
                 <span key={i} className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-semibold ${d ? "bg-indigo-900/60 text-indigo-300 border border-indigo-700" : "bg-indigo-100 text-indigo-700 border border-indigo-200"}`}>
                   📄 {f}
-                  <button
-                    onClick={() => handleRemoveUploaded(f)}
-                    className="ml-1 text-red-400 hover:text-red-600 font-black leading-none cursor-pointer text-sm"
-                  >
-                    ✕
-                  </button>
+                  <button onClick={() => handleRemoveUploaded(f)} className="ml-1 text-red-400 hover:text-red-600 font-black cursor-pointer text-sm">✕</button>
                 </span>
               ))}
             </div>
@@ -238,7 +353,7 @@ export default function App() {
                   {msg.text}
                 </div>
               ) : msg.type === "user" ? (
-                <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm max-w-xs lg:max-w-md text-sm shadow-lg shadow-indigo-200/50 font-medium">
+                <div className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm max-w-xs lg:max-w-md text-sm shadow-lg font-medium">
                   {msg.text}
                 </div>
               ) : (
@@ -288,7 +403,7 @@ export default function App() {
           <button
             onClick={handleAsk}
             disabled={uploadedFiles.length === 0 || loading}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-indigo-300 disabled:to-purple-300 text-white font-black px-5 py-3 rounded-2xl transition cursor-pointer shadow-lg shadow-indigo-200 text-sm"
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-indigo-300 disabled:to-purple-300 text-white font-black px-5 py-3 rounded-2xl transition cursor-pointer shadow-lg text-sm"
           >
             Send 🚀
           </button>
