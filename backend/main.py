@@ -28,13 +28,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Folders
 UPLOAD_DIR = "uploads"
 HISTORY_FILE = "history.json"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 vectorstore = None
 uploaded_files_list = []
+
+# ✅ Ek baar load hoga — startup pe
+embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 # ── History Helpers ─────────────────────────────────────
 def load_history():
@@ -48,11 +50,9 @@ def save_history(history):
         json.dump(history, f)
 
 def process_pdf(filepath: str, filename: str):
-    """PDF ko process karke vectorstore mein add karo"""
     global vectorstore
 
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-
     doc = fitz.open(filepath)
     chunks, meta = [], []
 
@@ -82,17 +82,14 @@ async def upload_pdfs(files: List[UploadFile] = File(...)):
     total_chunks = 0
 
     for file in files:
-        # Disk pe save karo
         filepath = os.path.join(UPLOAD_DIR, file.filename)
         content = await file.read()
         with open(filepath, "wb") as f:
             f.write(content)
 
-        # Process karo
         chunks = process_pdf(filepath, file.filename)
         total_chunks += chunks
 
-        # History mein add karo agar nahi hai
         if file.filename not in existing_names:
             history.append({
                 "filename": file.filename,
@@ -141,12 +138,10 @@ def get_history():
 # ── Delete from History ─────────────────────────────────
 @app.delete("/history/{filename}")
 def delete_from_history(filename: str):
-    # Disk se delete karo
     filepath = os.path.join(UPLOAD_DIR, filename)
     if os.path.exists(filepath):
         os.remove(filepath)
 
-    # History se hatao
     history = load_history()
     history = [h for h in history if h["filename"] != filename]
     save_history(history)
@@ -157,7 +152,6 @@ def delete_from_history(filename: str):
 # ── Clear All History ───────────────────────────────────
 @app.delete("/history")
 def clear_all_history():
-    # Saari files delete karo
     if os.path.exists(UPLOAD_DIR):
         shutil.rmtree(UPLOAD_DIR)
         os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -172,8 +166,6 @@ def reset():
     global vectorstore, uploaded_files_list
     vectorstore = None
     uploaded_files_list = []
-    # Embeddings ek baar load karo — startup pe
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     return {"message": "Session cleared!"}
 
 
