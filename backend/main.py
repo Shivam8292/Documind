@@ -5,6 +5,7 @@ import fitz
 import os
 import json
 import shutil
+import uuid
 from dotenv import load_dotenv
 from typing import List
 from datetime import datetime
@@ -30,15 +31,15 @@ app.add_middleware(
 
 UPLOAD_DIR = "uploads"
 HISTORY_FILE = "history.json"
+CHATS_DIR = "chats"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(CHATS_DIR, exist_ok=True)
 
 vectorstore = None
 uploaded_files_list = []
-
-# ✅ Ek baar load hoga — startup pe
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
-# ── History Helpers ─────────────────────────────────────
+# ── File History Helpers ────────────────────────────────
 def load_history():
     if os.path.exists(HISTORY_FILE):
         with open(HISTORY_FILE, "r") as f:
@@ -49,6 +50,28 @@ def save_history(history):
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f)
 
+# ── Chat History Helpers ────────────────────────────────
+def get_all_chats():
+    chats = []
+    for fname in sorted(os.listdir(CHATS_DIR), reverse=True):
+        if fname.endswith(".json"):
+            with open(os.path.join(CHATS_DIR, fname), "r") as f:
+                chats.append(json.load(f))
+    return chats
+
+def get_chat(chat_id: str):
+    path = os.path.join(CHATS_DIR, f"{chat_id}.json")
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return json.load(f)
+    return None
+
+def save_chat(chat: dict):
+    path = os.path.join(CHATS_DIR, f"{chat['id']}.json")
+    with open(path, "w") as f:
+        json.dump(chat, f)
+
+# ── PDF Process ─────────────────────────────────────────
 def process_pdf(filepath: str, filename: str):
     global vectorstore
 
@@ -109,7 +132,7 @@ async def upload_pdfs(files: List[UploadFile] = File(...)):
     }
 
 
-# ── Load from History ───────────────────────────────────
+# ── Load from File History ──────────────────────────────
 @app.post("/load/{filename}")
 def load_from_history(filename: str):
     global uploaded_files_list
@@ -129,38 +152,29 @@ def load_from_history(filename: str):
     }
 
 
-# ── Get History ─────────────────────────────────────────
+# ── File History Routes ─────────────────────────────────
 @app.get("/history")
 def get_history():
     return {"history": load_history()}
 
-
-# ── Delete from History ─────────────────────────────────
 @app.delete("/history/{filename}")
 def delete_from_history(filename: str):
     filepath = os.path.join(UPLOAD_DIR, filename)
     if os.path.exists(filepath):
         os.remove(filepath)
-
     history = load_history()
     history = [h for h in history if h["filename"] != filename]
     save_history(history)
-
     return {"message": f"{filename} deleted!"}
 
-
-# ── Clear All History ───────────────────────────────────
 @app.delete("/history")
 def clear_all_history():
     if os.path.exists(UPLOAD_DIR):
         shutil.rmtree(UPLOAD_DIR)
         os.makedirs(UPLOAD_DIR, exist_ok=True)
-
     save_history([])
     return {"message": "All history cleared!"}
 
-
-# ── Reset Vectorstore ───────────────────────────────────
 @app.delete("/reset")
 def reset():
     global vectorstore, uploaded_files_list
@@ -169,9 +183,37 @@ def reset():
     return {"message": "Session cleared!"}
 
 
+# ── Chat History Routes ─────────────────────────────────
+@app.get("/chats")
+def get_chats():
+    return {"chats": get_all_chats()}
+
+@app.get("/chats/{chat_id}")
+def get_single_chat(chat_id: str):
+    chat = get_chat(chat_id)
+    if not chat:
+        return {"error": "Chat nahi mili!"}
+    return chat
+
+@app.delete("/chats/{chat_id}")
+def delete_chat(chat_id: str):
+    path = os.path.join(CHATS_DIR, f"{chat_id}.json")
+    if os.path.exists(path):
+        os.remove(path)
+    return {"message": "Chat deleted!"}
+
+@app.delete("/chats")
+def clear_all_chats():
+    if os.path.exists(CHATS_DIR):
+        shutil.rmtree(CHATS_DIR)
+        os.makedirs(CHATS_DIR, exist_ok=True)
+    return {"message": "All chats cleared!"}
+
+
 # ── Ask ─────────────────────────────────────────────────
 class Question(BaseModel):
     query: str
+    chat_id: str = None
 
 @app.post("/ask")
 async def ask_question(q: Question):
@@ -203,7 +245,24 @@ Question: {question}
     docs = retriever.invoke(q.query)
     sources = list({f"{doc.metadata['filename']} (Page {doc.metadata['page']})" for doc in docs})
 
-    return {"answer": answer, "sources": sources}
+    # Chat save karo
+    chat_id = q.chat_id or str(uuid.uuid4())
+    chat = get_chat(chat_id) or {
+        "id": chat_id,
+        "title": q.query[:40] + ("..." if len(q.query) > 40 else ""),
+        "created_at": datetime.now().strftime("%d %b %Y, %I:%M %p"),
+        "messages": []
+    }
+
+    chat["messages"].append({"role": "user", "text": q.query})
+    chat["messages"].append({"role": "bot", "text": answer, "sources": sources})
+    save_chat(chat)
+
+    return {
+        "answer": answer,
+        "sources": sources,
+        "chat_id": chat_id
+    }
 
 
 # ── Health ───────────────────────────────────────────────
