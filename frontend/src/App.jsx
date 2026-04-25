@@ -282,7 +282,7 @@ export default function App() {
             className={`flex-1 rounded-2xl px-4 py-3 text-sm outline-none border-2 transition-all font-medium ${
               d
                 ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-indigo-500"
-                : "bg-white border-gray-100 text-gray-800 placeholder-gray-300 focus:border-indigo-300 focus:ring-4 focus:ring-indigo-50"
+                : "bg-white border-gray-100 text-gray-800 placeholder-gray-500 focus:border-indigo-300 focus:ring-4 focus:ring-indigo-50"
             } disabled:opacity-40`}
           />
           <button

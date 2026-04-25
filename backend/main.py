@@ -51,7 +51,6 @@ def process_pdf(filepath: str, filename: str):
     """PDF ko process karke vectorstore mein add karo"""
     global vectorstore
 
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 
     doc = fitz.open(filepath)
@@ -173,6 +172,8 @@ def reset():
     global vectorstore, uploaded_files_list
     vectorstore = None
     uploaded_files_list = []
+    # Embeddings ek baar load karo — startup pe
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     return {"message": "Session cleared!"}
 
 
