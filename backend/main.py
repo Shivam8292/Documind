@@ -7,7 +7,7 @@ import json
 import shutil
 import uuid
 from dotenv import load_dotenv
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -50,7 +50,7 @@ def save_history(history):
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f)
 
-# ── Chat History Helpers ────────────────────────────────
+# ── Chat Helpers ────────────────────────────────────────
 def get_all_chats():
     chats = []
     for fname in sorted(os.listdir(CHATS_DIR), reverse=True):
@@ -213,7 +213,7 @@ def clear_all_chats():
 # ── Ask ─────────────────────────────────────────────────
 class Question(BaseModel):
     query: str
-    chat_id: str = None
+    chat_id: Optional[str] = None
 
 @app.post("/ask")
 async def ask_question(q: Question):
