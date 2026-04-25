@@ -64,12 +64,12 @@ export default function App() {
       fetchFileHistory();
       fetchChatHistory();
     } catch (err) {
-      setAuthError(err.response?.data?.detail || "Kuch error aaya. Dobara try karo.");
+      setAuthError(err.response?.data?.detail || "Something went wrong. Please try again.");
     }
     setAuthLoading(false);
   };
 
-  const handleLogout = () => {
+const handleLogout = () => {
     localStorage.clear();
     setUser(null);
     setMessages([]);
@@ -77,7 +77,8 @@ export default function App() {
     setFileHistory([]);
     setChatHistory([]);
     setCurrentChatId(null);
-  };
+    setAuthData({ name: "", email: "", password: "" });
+  }; 
 
   // ── Data Fetch ────────────────────────────────────────
   const fetchFileHistory = async () => {
@@ -107,7 +108,7 @@ export default function App() {
       setFiles([]);
       fetchFileHistory();
     } catch {
-      setMessages((prev) => [...prev, { type: "system", text: "❌ Upload failed." }]);
+      setMessages((prev) => [...prev, { type: "system", text: "❌ Upload failed. Please try again." }]);
     }
     setUploading(false);
   };
@@ -128,7 +129,7 @@ export default function App() {
       setMessages((prev) => [...prev, { type: "system", text: `✅ ${filename} loaded!` }]);
       setShowSidebar(false);
     } catch {
-      setMessages((prev) => [...prev, { type: "system", text: "❌ Load failed." }]);
+      setMessages((prev) => [...prev, { type: "system", text: "❌  Load failed. Please try again." }]);
     }
   };
 
@@ -195,7 +196,7 @@ export default function App() {
       setCurrentChatId(res.data.chat_id);
       fetchChatHistory();
     } catch {
-      setMessages((prev) => [...prev, { type: "bot", text: "❌ Kuch error aaya." }]);
+      setMessages((prev) => [...prev, { type: "bot", text: "❌Ask anything...Something went wrong. Please try again." }]);
     }
     setLoading(false);
   };
