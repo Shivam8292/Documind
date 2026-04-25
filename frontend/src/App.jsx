@@ -234,7 +234,7 @@ export default function App() {
             {authMode === "register" && (
               <input
                 type="text"
-                placeholder="Tumhara naam"
+                placeholder="Your name"
                 value={authData.name}
                 onChange={(e) => setAuthData({ ...authData, name: e.target.value })}
                 className={`w-full rounded-xl px-4 py-3 text-sm outline-none border-2 transition font-medium ${d ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-indigo-500" : "bg-gray-50 border-gray-100 text-gray-800 placeholder-gray-400 focus:border-indigo-300"}`}
@@ -302,7 +302,7 @@ export default function App() {
         <div className="flex-1 overflow-y-auto">
           {sidebarTab === "chats" && (
             chatHistory.length === 0
-              ? <p className={`text-center text-sm py-10 ${d ? "text-gray-500" : "text-gray-400"}`}>Koi chat nahi hai abhi...</p>
+              ? <p className={`text-center text-sm py-10 ${d ? "text-gray-500" : "text-gray-400"}`}>No chats yet...</p>
               : chatHistory.map((chat) => (
                 <div key={chat.id} className={`flex items-center justify-between px-5 py-3 border-b cursor-pointer transition ${currentChatId === chat.id ? d ? "bg-indigo-900/40" : "bg-indigo-50" : d ? "border-gray-800 hover:bg-gray-800" : "border-gray-50 hover:bg-gray-50"}`} onClick={() => handleLoadChat(chat)}>
                   <div className="flex-1 min-w-0 mr-2">
@@ -316,7 +316,7 @@ export default function App() {
 
           {sidebarTab === "files" && (
             fileHistory.length === 0
-              ? <p className={`text-center text-sm py-10 ${d ? "text-gray-500" : "text-gray-400"}`}>Koi file nahi hai abhi...</p>
+              ? <p className={`text-center text-sm py-10 ${d ? "text-gray-500" : "text-gray-400"}`}>No files yet...</p>
               : fileHistory.map((item, i) => (
                 <div key={i} className={`flex items-center justify-between px-5 py-3 border-b transition ${d ? "border-gray-800 hover:bg-gray-800" : "border-gray-50 hover:bg-indigo-50"}`}>
                   <div className="flex-1 min-w-0 mr-2">
@@ -406,7 +406,7 @@ export default function App() {
           {messages.length === 0 && (
             <div className={`flex-1 flex flex-col items-center justify-center gap-3 select-none ${d ? "text-gray-600" : "text-gray-300"}`}>
               <span className="text-6xl">🤖</span>
-              <p className="text-sm font-medium">PDF upload karo aur poochho kuch bhi...</p>
+              <p className="text-sm font-medium">Upload a PDF and ask anything...</p>
             </div>
           )}
           {messages.map((msg, i) => (
@@ -445,7 +445,7 @@ export default function App() {
         <div className={`p-4 border-t flex gap-3 ${d ? "border-gray-700 bg-gray-900" : "border-gray-100 bg-gray-50/50"}`}>
           <input
             type="text"
-            placeholder={uploadedFiles.length > 0 ? "Kuch bhi poochho..." : "Pehle PDF upload karo..."}
+            placeholder={uploadedFiles.length > 0 ? "Ask anything..." : "Upload a PDF first..."}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAsk()}
