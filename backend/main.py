@@ -4,9 +4,9 @@ from pydantic import BaseModel
 import fitz
 import os
 from dotenv import load_dotenv
+from typing import List
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
@@ -26,33 +26,60 @@ app.add_middleware(
 )
 
 vectorstore = None
+uploaded_files_list = []
 
 @app.post("/upload")
-async def upload_pdf(file: UploadFile = File(...)):
-    global vectorstore
+async def upload_pdfs(files: List[UploadFile] = File(...)):
+    global vectorstore, uploaded_files_list
 
-    pdf_bytes = await file.read()
-    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    all_chunks = []
+    all_meta = []
+    new_files = []
 
-    texts, metadatas = [], []
-    for page_num in range(len(doc)):
-        text = doc[page_num].get_text()
-        if text.strip():
-            texts.append(text)
-            metadatas.append({"page": page_num + 1})
-
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-    chunks, chunk_meta = [], []
-    for text, meta in zip(texts, metadatas):
-        split = splitter.split_text(text)
-        chunks.extend(split)
-        chunk_meta.extend([meta] * len(split))
-
-    # Free local embeddings — OpenAI ki zaroorat nahi!
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    vectorstore = Chroma.from_texts(chunks, embeddings, metadatas=chunk_meta)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 
-    return {"message": f"PDF uploaded! {len(chunks)} chunks indexed."}
+    for file in files:
+        pdf_bytes = await file.read()
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+
+        for page_num in range(len(doc)):
+            text = doc[page_num].get_text()
+            if text.strip():
+                splits = splitter.split_text(text)
+                all_chunks.extend(splits)
+                all_meta.extend([{
+                    "page": page_num + 1,
+                    "filename": file.filename
+                }] * len(splits))
+
+        new_files.append(file.filename)
+
+    # Pehle se uploaded files ke saath merge karo
+    if vectorstore is None:
+        vectorstore = Chroma.from_texts(all_chunks, embeddings, metadatas=all_meta)
+    else:
+        vectorstore.add_texts(all_chunks, metadatas=all_meta)
+
+    uploaded_files_list.extend(new_files)
+
+    return {
+        "message": f"{len(new_files)} PDF(s) uploaded! {len(all_chunks)} chunks indexed.",
+        "uploaded_files": uploaded_files_list
+    }
+
+
+@app.get("/files")
+def get_files():
+    return {"uploaded_files": uploaded_files_list}
+
+
+@app.delete("/reset")
+def reset():
+    global vectorstore, uploaded_files_list
+    vectorstore = None
+    uploaded_files_list = []
+    return {"message": "All PDFs cleared!"}
 
 
 class Question(BaseModel):
@@ -72,7 +99,6 @@ Answer the question based only on the following context:
 Question: {question}
 """)
 
-    # Groq LLM — Free!
     llm = ChatGroq(
         model="llama-3.3-70b-versatile",
         groq_api_key=os.getenv("GROQ_API_KEY")
@@ -88,9 +114,12 @@ Question: {question}
     answer = chain.invoke(q.query)
 
     docs = retriever.invoke(q.query)
-    pages = sorted(set(doc.metadata["page"] for doc in docs))
+    sources = list({f"{doc.metadata['filename']} (Page {doc.metadata['page']})" for doc in docs})
 
-    return {"answer": answer, "pages": pages}
+    return {
+        "answer": answer,
+        "sources": sources
+    }
 
 
 @app.get("/")
