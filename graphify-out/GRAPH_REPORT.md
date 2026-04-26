@@ -1,7 +1,7 @@
-# Graph Report - C:\Users\shiva\Desktop\Documind  (2026-04-26)
+# Graph Report - C:\Users\shiva\Desktop\Documind  (2026-04-27)
 
 ## Corpus Check
-- 7 files · ~8,442 words
+- 7 files · ~11,060 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -34,16 +34,16 @@
 10. `login()` - 3 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `register()` --calls--> `User`  [INFERRED]
-  C:\Users\shiva\Desktop\Documind\backend\main.py → C:\Users\shiva\Desktop\Documind\backend\database.py
-- `register()` --calls--> `hash_password()`  [INFERRED]
-  C:\Users\shiva\Desktop\Documind\backend\main.py → C:\Users\shiva\Desktop\Documind\backend\auth.py
-- `login()` --calls--> `verify_password()`  [INFERRED]
-  C:\Users\shiva\Desktop\Documind\backend\main.py → C:\Users\shiva\Desktop\Documind\backend\auth.py
-- `register()` --calls--> `create_token()`  [INFERRED]
-  C:\Users\shiva\Desktop\Documind\backend\main.py → C:\Users\shiva\Desktop\Documind\backend\auth.py
-- `login()` --calls--> `create_token()`  [INFERRED]
-  C:\Users\shiva\Desktop\Documind\backend\main.py → C:\Users\shiva\Desktop\Documind\backend\auth.py
+- `User` --calls--> `register()`  [INFERRED]
+  C:\Users\shiva\Desktop\Documind\backend\database.py → C:\Users\shiva\Desktop\Documind\backend\main.py
+- `hash_password()` --calls--> `register()`  [INFERRED]
+  C:\Users\shiva\Desktop\Documind\backend\auth.py → C:\Users\shiva\Desktop\Documind\backend\main.py
+- `verify_password()` --calls--> `login()`  [INFERRED]
+  C:\Users\shiva\Desktop\Documind\backend\auth.py → C:\Users\shiva\Desktop\Documind\backend\main.py
+- `create_token()` --calls--> `register()`  [INFERRED]
+  C:\Users\shiva\Desktop\Documind\backend\auth.py → C:\Users\shiva\Desktop\Documind\backend\main.py
+- `create_token()` --calls--> `login()`  [INFERRED]
+  C:\Users\shiva\Desktop\Documind\backend\auth.py → C:\Users\shiva\Desktop\Documind\backend\main.py
 
 ## Communities
 
@@ -65,11 +65,11 @@ Nodes (2): get_all_chats(), get_chats()
 
 ### Community 4 - "Community 4"
 Cohesion: 0.67
-Nodes (3): ask_question(), get_chat(), save_chat()
+Nodes (3): clear_all_chats(), delete_chat(), get_user_chats_dir()
 
 ### Community 5 - "Community 5"
 Cohesion: 0.67
-Nodes (3): clear_all_chats(), delete_chat(), get_user_chats_dir()
+Nodes (3): ask_question(), get_chat(), save_chat()
 
 ### Community 6 - "Community 6"
 Cohesion: 1.0

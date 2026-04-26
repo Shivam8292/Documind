@@ -18,6 +18,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
 
   const [files, setFiles] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [question, setQuestion] = useState("");
@@ -30,6 +31,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const dragDepthRef = useRef(0);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -84,6 +86,41 @@ export default function App() {
 
   const fetchChatHistory = async () => {
     try { const res = await axios.get(`${API}/chats`); setChatHistory(res.data.chats); } catch {}
+  };
+
+  const selectPdfFiles = (fileList) => {
+    const pdfs = Array.from(fileList || []).filter((file) => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"));
+    if (pdfs.length > 0) setFiles(pdfs);
+  };
+
+  const isFileDrag = (e) => Array.from(e.dataTransfer?.types || []).includes("Files");
+
+  const handleMainDragEnter = (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDragging(true);
+  };
+
+  const handleMainDragOver = (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setIsDragging(true);
+  };
+
+  const handleMainDragLeave = (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    dragDepthRef.current = 0;
+    setIsDragging(false);
+    selectPdfFiles(e.dataTransfer.files);
   };
 
   const handleUpload = async () => {
@@ -279,7 +316,21 @@ export default function App() {
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div
+        onDragEnter={handleMainDragEnter}
+        onDragOver={handleMainDragOver}
+        onDragLeave={handleMainDragLeave}
+        onDrop={handleDrop}
+        className="relative flex-1 flex flex-col min-w-0"
+      >
+        {isDragging && (
+          <div className={`pointer-events-none absolute inset-4 z-50 flex items-center justify-center rounded-3xl border-2 border-dashed ${d ? "border-indigo-400 bg-indigo-950/70 text-indigo-200" : "border-indigo-500 bg-indigo-50/90 text-indigo-700"}`}>
+            <div className="text-center">
+              <div className="text-5xl mb-3">ðŸ“„</div>
+              <p className="text-lg font-black">Drop PDF(s) anywhere here</p>
+            </div>
+          </div>
+        )}
 
         {/* Top Bar */}
         <div className={`flex items-center justify-between px-4 py-3 border-b shrink-0 ${d ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
@@ -301,9 +352,11 @@ export default function App() {
         {/* Upload Bar */}
         <div className={`px-4 py-2 border-b shrink-0 ${d ? "bg-gray-900 border-gray-800" : "bg-white border-gray-100"}`}>
           <div className="flex items-center gap-2 flex-wrap">
-            <label className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition ${d ? "border-gray-700 text-gray-400 hover:border-indigo-500 hover:text-indigo-400" : "border-gray-200 text-gray-500 hover:border-indigo-400 hover:text-indigo-600"}`}>
-              <input type="file" accept=".pdf" multiple className="hidden" ref={fileInputRef} onChange={(e) => setFiles(Array.from(e.target.files))} />
-              📎 {files.length > 0 ? `${files.length} file(s) selected` : "Choose PDF(s)"}
+            <label
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border border-dashed text-xs font-semibold cursor-pointer transition ${isDragging ? d ? "border-indigo-400 bg-indigo-950/50 text-indigo-300" : "border-indigo-500 bg-indigo-50 text-indigo-700" : d ? "border-gray-700 text-gray-400 hover:border-indigo-500 hover:text-indigo-400" : "border-gray-200 text-gray-500 hover:border-indigo-400 hover:text-indigo-600"}`}
+            >
+              <input type="file" accept=".pdf" multiple className="hidden" ref={fileInputRef} onChange={(e) => selectPdfFiles(e.target.files)} />
+              📎 {isDragging ? "Drop PDF(s) here" : files.length > 0 ? `${files.length} file(s) selected` : "Choose or drop PDF(s)"}
             </label>
             <button onClick={handleUpload} disabled={files.length === 0 || uploading}
               className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold cursor-pointer transition">

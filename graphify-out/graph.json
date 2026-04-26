@@ -180,7 +180,7 @@
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\backend\\main.py",
       "source_location": "L103",
       "id": "main_get_user_chats_dir",
-      "community": 5,
+      "community": 4,
       "norm_label": "get_user_chats_dir()"
     },
     {
@@ -198,7 +198,7 @@
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\backend\\main.py",
       "source_location": "L117",
       "id": "main_get_chat",
-      "community": 4,
+      "community": 5,
       "norm_label": "get_chat()"
     },
     {
@@ -207,7 +207,7 @@
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\backend\\main.py",
       "source_location": "L124",
       "id": "main_save_chat",
-      "community": 4,
+      "community": 5,
       "norm_label": "save_chat()"
     },
     {
@@ -288,7 +288,7 @@
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\backend\\main.py",
       "source_location": "L233",
       "id": "main_delete_chat",
-      "community": 5,
+      "community": 4,
       "norm_label": "delete_chat()"
     },
     {
@@ -297,7 +297,7 @@
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\backend\\main.py",
       "source_location": "L240",
       "id": "main_clear_all_chats",
-      "community": 5,
+      "community": 4,
       "norm_label": "clear_all_chats()"
     },
     {
@@ -315,7 +315,7 @@
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\backend\\main.py",
       "source_location": "L252",
       "id": "main_ask_question",
-      "community": 4,
+      "community": 5,
       "norm_label": "ask_question()"
     },
     {
@@ -358,7 +358,7 @@
       "label": "App()",
       "file_type": "code",
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\frontend\\src\\App.jsx",
-      "source_location": "L13",
+      "source_location": "L12",
       "id": "app_app",
       "community": 6,
       "norm_label": "app()"
@@ -429,8 +429,8 @@
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\backend\\main.py",
       "source_location": "L65",
       "weight": 1.0,
-      "_src": "main_register",
-      "_tgt": "auth_hash_password",
+      "_src": "auth_hash_password",
+      "_tgt": "main_register",
       "source": "auth_hash_password",
       "target": "main_register"
     },
@@ -441,8 +441,8 @@
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\backend\\main.py",
       "source_location": "L77",
       "weight": 1.0,
-      "_src": "main_login",
-      "_tgt": "auth_verify_password",
+      "_src": "auth_verify_password",
+      "_tgt": "main_login",
       "source": "auth_verify_password",
       "target": "main_login"
     },
@@ -453,8 +453,8 @@
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\backend\\main.py",
       "source_location": "L70",
       "weight": 1.0,
-      "_src": "main_register",
-      "_tgt": "auth_create_token",
+      "_src": "auth_create_token",
+      "_tgt": "main_register",
       "source": "auth_create_token",
       "target": "main_register"
     },
@@ -465,8 +465,8 @@
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\backend\\main.py",
       "source_location": "L79",
       "weight": 1.0,
-      "_src": "main_login",
-      "_tgt": "auth_create_token",
+      "_src": "auth_create_token",
+      "_tgt": "main_login",
       "source": "auth_create_token",
       "target": "main_login"
     },
@@ -512,11 +512,11 @@
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\backend\\main.py",
       "source_location": "L22",
       "weight": 0.8,
-      "_src": "main_registermodel",
-      "_tgt": "database_user",
+      "_src": "database_user",
+      "_tgt": "main_registermodel",
+      "confidence_score": 0.5,
       "source": "database_user",
-      "target": "main_registermodel",
-      "confidence_score": 0.5
+      "target": "main_registermodel"
     },
     {
       "relation": "uses",
@@ -524,11 +524,11 @@
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\backend\\main.py",
       "source_location": "L22",
       "weight": 0.8,
-      "_src": "main_loginmodel",
-      "_tgt": "database_user",
+      "_src": "database_user",
+      "_tgt": "main_loginmodel",
+      "confidence_score": 0.5,
       "source": "database_user",
-      "target": "main_loginmodel",
-      "confidence_score": 0.5
+      "target": "main_loginmodel"
     },
     {
       "relation": "uses",
@@ -536,11 +536,11 @@
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\backend\\main.py",
       "source_location": "L22",
       "weight": 0.8,
-      "_src": "main_question",
-      "_tgt": "database_user",
+      "_src": "database_user",
+      "_tgt": "main_question",
+      "confidence_score": 0.5,
       "source": "database_user",
-      "target": "main_question",
-      "confidence_score": 0.5
+      "target": "main_question"
     },
     {
       "relation": "calls",
@@ -549,8 +549,8 @@
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\backend\\main.py",
       "source_location": "L62",
       "weight": 1.0,
-      "_src": "main_register",
-      "_tgt": "database_user",
+      "_src": "database_user",
+      "_tgt": "main_register",
       "source": "database_user",
       "target": "main_register"
     },
@@ -1110,7 +1110,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "C:\\Users\\shiva\\Desktop\\Documind\\frontend\\src\\App.jsx",
-      "source_location": "L13",
+      "source_location": "L12",
       "weight": 1.0,
       "_src": "c_users_shiva_desktop_documind_frontend_src_app_jsx",
       "_tgt": "app_app",
