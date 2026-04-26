@@ -280,7 +280,7 @@ npm run dev
 
 <div align="center">
 
-**Shivam Kumar Yadav**
+**Shivam Kumar**
 
 [![GitHub](https://img.shields.io/badge/GitHub-Shivam8292-181717?style=for-the-badge&logo=github)](https://github.com/Shivam8292)
 
